@@ -3,6 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators, AbstractControl } from '@angular/forms';
 import { NavbarComponent } from '../../layout/navbar/navbar';
 import { ToastService } from '../../core/services/toast.service';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-register',
@@ -66,6 +67,7 @@ export class RegisterComponent {
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private toast = inject(ToastService);
+  private auth = inject(AuthService);
 
   loading = signal(false);
   error = signal('');
@@ -89,23 +91,23 @@ export class RegisterComponent {
       if (this.form.hasError('mismatch')) this.error.set('Passwords do not match');
       return;
     }
+
     this.loading.set(true);
     this.error.set('');
-    setTimeout(() => {
-      const user = {
-        id: 1,
-        name: this.form.value.name!,
-        email: this.form.value.email!,
-        phone: this.form.value.phone,
-        role: 'Customer' as const,
-        createdAt: new Date().toISOString()
-      };
-      localStorage.setItem('ma_auth_token', 'demo-token');
-      localStorage.setItem('ma_user', JSON.stringify(user));
-      this.toast.success('Account created successfully');
-      this.loading.set(false);
-      this.router.navigate(['/']);
-      setTimeout(() => window.location.reload(), 300);
-    }, 700);
+
+    const { name, email, phone, password, confirmPassword } = this.form.getRawValue();
+
+    this.auth.register({ name, email, phone, password, confirmPassword }).subscribe({
+      next: () => {
+        this.loading.set(false);
+        this.toast.success('Account created successfully');
+        this.router.navigate(['/']);
+      },
+      error: (err) => {
+        this.loading.set(false);
+        this.error.set(err?.error?.message || 'Registration failed. Please try again.');
+        this.toast.error('Registration failed');
+      }
+    });
   }
 }

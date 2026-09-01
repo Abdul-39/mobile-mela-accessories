@@ -68,27 +68,23 @@ export class LoginComponent {
   });
 
   onSubmit(): void {
-    if (this.form.invalid) return;
-    this.loading.set(true);
-    this.error.set('');
-    // Demo mode: accept any credentials and set a mock user
-    // Replace with real API when backend is ready
-    setTimeout(() => {
-      const user = {
-        id: 1,
-        name: this.form.value.email!.split('@')[0],
-        email: this.form.value.email!,
-        role: 'Customer' as const,
-        createdAt: new Date().toISOString()
-      };
-      localStorage.setItem('ma_auth_token', 'demo-token');
-      localStorage.setItem('ma_user', JSON.stringify(user));
-      // Force refresh of auth signals by reloading or manual set — for demo navigate
-      this.toast.success('Signed in successfully');
+  if (this.form.invalid) return;
+  this.loading.set(true);
+  this.error.set('');
+
+  const { email, password } = this.form.getRawValue();
+
+  this.auth.login({ email, password }).subscribe({
+    next: () => {
       this.loading.set(false);
+      this.toast.success('Signed in successfully');
       this.router.navigate(['/account']);
-      // Note: in real app AuthService.login() handles this
-      setTimeout(() => window.location.reload(), 300);
-    }, 600);
-  }
+    },
+    error: (err) => {
+      this.loading.set(false);
+      this.error.set(err?.error?.message || 'Login failed. Please check your credentials.');
+      this.toast.error('Login failed');
+    }
+  });
+}
 }
