@@ -1,7 +1,19 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, of, delay, map, catchError } from 'rxjs';
+import {
+  HttpClient,
+  HttpParams
+} from '@angular/common/http';
+
+import {
+  Observable,
+  of,
+  delay,
+  map,
+  catchError
+} from 'rxjs';
+
 import { environment } from '../../../environments/environment';
+
 import {
   Product,
   Category,
@@ -9,94 +21,294 @@ import {
   PagedResult
 } from '../models';
 
+// ============================================================
+// MOCK DATA
+// ============================================================
+
 const MOCK_CATEGORIES: Category[] = [];
 
 const MOCK_PRODUCTS: Product[] = [];
 
-@Injectable({ providedIn: 'root' })
+// ============================================================
+// PRODUCT SERVICE
+// ============================================================
+
+@Injectable({
+  providedIn: 'root'
+})
 export class ProductService {
 
-  private http = inject(HttpClient);
+  private readonly http = inject(HttpClient);
 
   /**
-   * Real API is enabled.
+   * Set to true only when using local/mock data.
    */
-  private useMock = false;
+  private readonly useMock = false;
 
-  private readonly STORAGE_KEY = 'luxe_products_v1';
-  private readonly CAT_STORAGE_KEY = 'luxe_categories_v1';
+  private readonly STORAGE_KEY =
+    'luxe_products_v1';
 
-  private products: Product[] = this.loadProducts();
-  private categories: Category[] = this.loadCategories();
+  private readonly CAT_STORAGE_KEY =
+    'luxe_categories_v1';
+
+  private products: Product[] =
+    this.loadProducts();
+
+  private categories: Category[] =
+    this.loadCategories();
 
   // ============================================================
   // LOCAL STORAGE
   // ============================================================
 
   private loadProducts(): Product[] {
+
     try {
-      const raw = localStorage.getItem(this.STORAGE_KEY);
+
+      const raw =
+        localStorage.getItem(
+          this.STORAGE_KEY
+        );
 
       if (raw) {
-        const parsed = JSON.parse(raw) as Product[];
 
-        if (Array.isArray(parsed) && parsed.length) {
+        const parsed =
+          JSON.parse(raw) as Product[];
+
+        if (
+          Array.isArray(parsed) &&
+          parsed.length > 0
+        ) {
           return parsed;
         }
       }
-    } catch {
-      // Ignore localStorage errors
+
+    } catch (error) {
+
+      console.warn(
+        'Could not load products from localStorage:',
+        error
+      );
     }
 
     return [...MOCK_PRODUCTS];
   }
 
   private loadCategories(): Category[] {
+
     try {
-      const raw = localStorage.getItem(this.CAT_STORAGE_KEY);
+
+      const raw =
+        localStorage.getItem(
+          this.CAT_STORAGE_KEY
+        );
 
       if (raw) {
-        const parsed = JSON.parse(raw) as Category[];
 
-        if (Array.isArray(parsed) && parsed.length) {
+        const parsed =
+          JSON.parse(raw) as Category[];
+
+        if (
+          Array.isArray(parsed) &&
+          parsed.length > 0
+        ) {
           return parsed;
         }
       }
-    } catch {
-      // Ignore localStorage errors
+
+    } catch (error) {
+
+      console.warn(
+        'Could not load categories from localStorage:',
+        error
+      );
     }
 
     return [...MOCK_CATEGORIES];
   }
 
   private persist(): void {
+
     try {
+
       localStorage.setItem(
         this.STORAGE_KEY,
         JSON.stringify(this.products)
       );
-    } catch {
-      // Ignore storage quota errors
+
+    } catch (error) {
+
+      console.warn(
+        'Could not persist products:',
+        error
+      );
     }
   }
 
   private persistCategories(): void {
+
     try {
+
       localStorage.setItem(
         this.CAT_STORAGE_KEY,
         JSON.stringify(this.categories)
       );
-    } catch {
-      // Ignore storage quota errors
+
+    } catch (error) {
+
+      console.warn(
+        'Could not persist categories:',
+        error
+      );
     }
   }
 
+  // ============================================================
+  // HELPERS
+  // ============================================================
+
   private slugify(name: string): string {
+
     return name
       .toLowerCase()
       .trim()
       .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '') || 'product';
+      .replace(/^-|-$/g, '')
+      || 'product';
+  }
+
+  /**
+   * Safely unwrap API responses.
+   *
+   * Supports:
+   *
+   * { data: {...} }
+   *
+   * and:
+   *
+   * {...}
+   */
+  private unwrap<T>(response: any): T {
+
+    return (
+      response?.data ??
+      response
+    ) as T;
+  }
+
+  /**
+   * Normalize different product-list API formats
+   * into the PagedResult<Product> structure.
+   */
+  private normalizePagedProducts(
+    response: any,
+    filter: ProductFilter
+  ): PagedResult<Product> {
+
+    const data =
+      response?.data ??
+      response;
+
+    // ----------------------------------------------------------
+    // API returns paginated object
+    // ----------------------------------------------------------
+
+    if (
+      data &&
+      Array.isArray(data.items)
+    ) {
+
+      const page =
+        data.page ??
+        filter.page ??
+        1;
+
+      const pageSize =
+        data.pageSize ??
+        filter.pageSize ??
+        data.items.length ??
+        12;
+
+      const totalCount =
+        data.totalCount ??
+        data.items.length;
+
+      const totalPages =
+        data.totalPages ??
+        (
+          Math.ceil(
+            totalCount /
+            (pageSize || 1)
+          ) || 1
+        );
+
+      return {
+
+        items:
+          data.items,
+
+        totalCount,
+
+        page,
+
+        pageSize,
+
+        totalPages
+      };
+    }
+
+    // ----------------------------------------------------------
+    // API returns a plain array
+    // ----------------------------------------------------------
+
+    if (Array.isArray(data)) {
+
+      const page =
+        filter.page || 1;
+
+      const pageSize =
+        filter.pageSize ||
+        data.length ||
+        12;
+
+      return {
+
+        items:
+          data,
+
+        totalCount:
+          data.length,
+
+        page,
+
+        pageSize,
+
+        totalPages:
+          Math.ceil(
+            data.length /
+            pageSize
+          ) || 1
+      };
+    }
+
+    // ----------------------------------------------------------
+    // Empty fallback
+    // ----------------------------------------------------------
+
+    return {
+
+      items: [],
+
+      totalCount: 0,
+
+      page:
+        filter.page || 1,
+
+      pageSize:
+        filter.pageSize || 12,
+
+      totalPages: 1
+    };
   }
 
   // ============================================================
@@ -107,24 +319,46 @@ export class ProductService {
 
     if (this.useMock) {
 
-      const withCounts = this.categories.map(c => ({
-        ...c,
-        productCount: this.products.filter(
-          p =>
-            p.categoryId === c.id &&
-            p.isActive
-        ).length
-      }));
+      const withCounts =
+        this.categories.map(
+          category => ({
 
-      return of(withCounts).pipe(delay(150));
+            ...category,
+
+            productCount:
+              this.products.filter(
+                product =>
+                  product.categoryId ===
+                    category.id &&
+                  product.isActive
+              ).length
+          })
+        );
+
+      return of(withCounts)
+        .pipe(delay(150));
     }
 
     return this.http
-      .get<any>(`${environment.apiUrl}/categories`)
+      .get<any>(
+        `${environment.apiUrl}/categories`
+      )
       .pipe(
-        map(r => r?.data ?? r ?? []),
-        map(data => Array.isArray(data) ? data : []),
+
+        map(response =>
+          this.unwrap<Category[]>(
+            response
+          )
+        ),
+
+        map(data =>
+          Array.isArray(data)
+            ? data
+            : []
+        ),
+
         catchError(error => {
+
           console.error(
             'Failed to load categories:',
             error
@@ -134,6 +368,10 @@ export class ProductService {
         })
       );
   }
+
+  // ============================================================
+  // CREATE CATEGORY
+  // ============================================================
 
   createCategory(
     data: Partial<Category>
@@ -147,38 +385,67 @@ export class ProductService {
           data
         )
         .pipe(
-          map(r => r?.data ?? r)
+
+          map(response =>
+            this.unwrap<Category>(
+              response
+            )
+          )
         );
     }
 
     const id =
       Math.max(
         0,
-        ...this.categories.map(c => c.id)
+        ...this.categories.map(
+          category =>
+            category.id
+        )
       ) + 1;
 
     const name =
-      data.name || 'New Category';
+      data.name ||
+      'New Category';
 
-    const cat: Category = {
+    const category: Category = {
+
       id,
+
       name,
-      slug: this.slugify(name) + '-' + id,
-      description: data.description || '',
-      imageUrl: data.imageUrl || '',
-      isActive: data.isActive !== false,
+
+      slug:
+        this.slugify(name) +
+        '-' +
+        id,
+
+      description:
+        data.description ||
+        '',
+
+      imageUrl:
+        data.imageUrl ||
+        '',
+
+      isActive:
+        data.isActive !== false,
+
       productCount: 0
     };
 
     this.categories = [
       ...this.categories,
-      cat
+      category
     ];
 
     this.persistCategories();
 
-    return of(cat).pipe(delay(300));
+    return of(category)
+      .pipe(delay(300));
   }
+
+  // ============================================================
+  // UPDATE CATEGORY
+  // ============================================================
 
   updateCategory(
     id: number,
@@ -193,31 +460,45 @@ export class ProductService {
           data
         )
         .pipe(
-          map(r => r?.data ?? r)
+
+          map(response =>
+            this.unwrap<Category>(
+              response
+            )
+          )
         );
     }
 
-    const idx =
+    const index =
       this.categories.findIndex(
-        c => c.id === id
+        category =>
+          category.id === id
       );
 
-    if (idx < 0) {
-      return of(null).pipe(delay(200));
+    if (index < 0) {
+
+      return of(null)
+        .pipe(delay(200));
     }
 
     const existing =
-      this.categories[idx];
+      this.categories[index];
 
     const updated: Category = {
+
       ...existing,
+
       name:
         data.name ??
         existing.name,
 
       slug:
         data.name
-          ? this.slugify(data.name) + '-' + id
+          ? this.slugify(
+              data.name
+            ) +
+            '-' +
+            id
           : existing.slug,
 
       description:
@@ -234,28 +515,36 @@ export class ProductService {
     };
 
     this.categories =
-      this.categories.map(c =>
-        c.id === id
-          ? updated
-          : c
+      this.categories.map(
+        category =>
+          category.id === id
+            ? updated
+            : category
       );
 
     this.persistCategories();
 
     this.products =
-      this.products.map(p =>
-        p.categoryId === id
-          ? {
-              ...p,
-              categoryName: updated.name
-            }
-          : p
+      this.products.map(
+        product =>
+          product.categoryId === id
+            ? {
+                ...product,
+                categoryName:
+                  updated.name
+              }
+            : product
       );
 
     this.persist();
 
-    return of(updated).pipe(delay(300));
+    return of(updated)
+      .pipe(delay(300));
   }
+
+  // ============================================================
+  // DELETE CATEGORY
+  // ============================================================
 
   deleteCategory(
     id: number
@@ -268,40 +557,58 @@ export class ProductService {
           `${environment.apiUrl}/categories/${id}`
         )
         .pipe(
-          map(r => r?.success !== false)
+
+          map(response =>
+            response?.success !== false
+          ),
+
+          catchError(error => {
+
+            console.error(
+              'Failed to delete category:',
+              error
+            );
+
+            return of(false);
+          })
         );
     }
 
     const hasProducts =
       this.products.some(
-        p => p.categoryId === id
+        product =>
+          product.categoryId === id
       );
 
     if (hasProducts) {
 
       this.categories =
-        this.categories.map(c =>
-          c.id === id
-            ? {
-                ...c,
-                isActive: false
-              }
-            : c
+        this.categories.map(
+          category =>
+            category.id === id
+              ? {
+                  ...category,
+                  isActive: false
+                }
+              : category
         );
 
       this.persistCategories();
 
-      return of(true).pipe(delay(250));
+      return of(true)
+        .pipe(delay(250));
     }
 
     this.categories =
       this.categories.filter(
-        c => c.id !== id
+        category =>
+          category.id !== id
       );
 
     this.persistCategories();
 
-    return of(true).pipe(delay(250));
+    return of(true)
+      .pipe(delay(250));
   }
 
   // ============================================================
@@ -318,63 +625,99 @@ export class ProductService {
 
     if (this.useMock) {
 
-      let list = [...this.products];
+      let list = [
+        ...this.products
+      ];
+
+      // Search
 
       if (filter.search) {
 
-        const q =
-          filter.search.toLowerCase();
-
-        list = list.filter(p =>
-          p.name
+        const query =
+          filter.search
             .toLowerCase()
-            .includes(q) ||
+            .trim();
 
-          p.brand
-            ?.toLowerCase()
-            .includes(q) ||
+        list =
+          list.filter(
+            product =>
+              product.name
+                .toLowerCase()
+                .includes(query) ||
 
-          p.sku
-            .toLowerCase()
-            .includes(q)
-        );
+              product.sku
+                .toLowerCase()
+                .includes(query) ||
+
+              (
+                product.brand
+                  ?.toLowerCase()
+                  .includes(query) ??
+                false
+              )
+          );
       }
 
-      if (filter.categoryId) {
+      // Category
 
-        list = list.filter(
-          p =>
-            p.categoryId ===
-            filter.categoryId
-        );
+      if (
+        filter.categoryId != null
+      ) {
+
+        list =
+          list.filter(
+            product =>
+              product.categoryId ===
+              filter.categoryId
+          );
       }
 
-      if (filter.minPrice != null) {
+      // Minimum price
 
-        list = list.filter(
-          p =>
-            (p.discountPrice ??
-              p.price) >=
-            filter.minPrice!
-        );
+      if (
+        filter.minPrice != null
+      ) {
+
+        list =
+          list.filter(
+            product =>
+              (
+                product.discountPrice ??
+                product.price
+              ) >=
+              filter.minPrice!
+          );
       }
 
-      if (filter.maxPrice != null) {
+      // Maximum price
 
-        list = list.filter(
-          p =>
-            (p.discountPrice ??
-              p.price) <=
-            filter.maxPrice!
-        );
+      if (
+        filter.maxPrice != null
+      ) {
+
+        list =
+          list.filter(
+            product =>
+              (
+                product.discountPrice ??
+                product.price
+              ) <=
+              filter.maxPrice!
+          );
       }
+
+      // In stock
 
       if (filter.inStockOnly) {
 
-        list = list.filter(
-          p => p.stockQuantity > 0
-        );
+        list =
+          list.filter(
+            product =>
+              product.stockQuantity > 0
+          );
       }
+
+      // Sorting
 
       switch (filter.sortBy) {
 
@@ -382,8 +725,14 @@ export class ProductService {
 
           list.sort(
             (a, b) =>
-              (a.discountPrice ?? a.price) -
-              (b.discountPrice ?? b.price)
+              (
+                a.discountPrice ??
+                a.price
+              ) -
+              (
+                b.discountPrice ??
+                b.price
+              )
           );
 
           break;
@@ -392,8 +741,14 @@ export class ProductService {
 
           list.sort(
             (a, b) =>
-              (b.discountPrice ?? b.price) -
-              (a.discountPrice ?? a.price)
+              (
+                b.discountPrice ??
+                b.price
+              ) -
+              (
+                a.discountPrice ??
+                a.price
+              )
           );
 
           break;
@@ -412,10 +767,16 @@ export class ProductService {
 
           list.sort(
             (a, b) =>
-              new Date(b.createdAt).getTime() -
-              new Date(a.createdAt).getTime()
+              new Date(
+                b.createdAt
+              ).getTime() -
+              new Date(
+                a.createdAt
+              ).getTime()
           );
       }
+
+      // Pagination
 
       const page =
         filter.page || 1;
@@ -424,7 +785,10 @@ export class ProductService {
         filter.pageSize || 12;
 
       const start =
-        (page - 1) * pageSize;
+        (
+          page - 1
+        ) *
+        pageSize;
 
       const items =
         list.slice(
@@ -433,15 +797,25 @@ export class ProductService {
         );
 
       return of({
+
         items,
-        totalCount: list.length,
+
+        totalCount:
+          list.length,
+
         page,
+
         pageSize,
+
         totalPages:
           Math.ceil(
-            list.length / pageSize
+            list.length /
+            pageSize
           ) || 1
-      }).pipe(delay(250));
+
+      }).pipe(
+        delay(250)
+      );
     }
 
     // ----------------------------------------------------------
@@ -451,94 +825,40 @@ export class ProductService {
     let params =
       new HttpParams();
 
-    Object.entries(filter).forEach(
-      ([key, value]) => {
+    Object.entries(filter)
+      .forEach(
+        ([key, value]) => {
 
-        if (
-          value !== undefined &&
-          value !== null &&
-          value !== ''
-        ) {
-          params =
-            params.set(
-              key,
-              String(value)
-            );
+          if (
+            value !== undefined &&
+            value !== null &&
+            value !== ''
+          ) {
+
+            params =
+              params.set(
+                key,
+                String(value)
+              );
+          }
         }
-
-      }
-    );
+      );
 
     return this.http
       .get<any>(
         `${environment.apiUrl}/products`,
-        { params }
+        {
+          params
+        }
       )
       .pipe(
 
-        map(response => {
-
-          const data =
-            response?.data ??
-            response;
-
-          /*
-           * Support both:
-           *
-           * {
-           *   data: {
-           *     items: [...]
-           *   }
-           * }
-           *
-           * and:
-           *
-           * {
-           *   items: [...]
-           * }
-           */
-
-          if (
-            data &&
-            Array.isArray(data.items)
-          ) {
-            return data;
-          }
-
-          /*
-           * Also support APIs that simply
-           * return an array.
-           */
-
-          if (Array.isArray(data)) {
-
-            return {
-              items: data,
-              totalCount: data.length,
-              page:
-                filter.page || 1,
-              pageSize:
-                filter.pageSize ||
-                data.length,
-              totalPages: 1
-            };
-          }
-
-          /*
-           * Empty fallback
-           */
-
-          return {
-            items: [],
-            totalCount: 0,
-            page:
-              filter.page || 1,
-            pageSize:
-              filter.pageSize || 12,
-            totalPages: 1
-          };
-
-        }),
+        map(response =>
+          this.normalizePagedProducts(
+            response,
+            filter
+          )
+        ),
 
         catchError(error => {
 
@@ -548,15 +868,20 @@ export class ProductService {
           );
 
           return of({
+
             items: [],
+
             totalCount: 0,
+
             page:
               filter.page || 1,
+
             pageSize:
               filter.pageSize || 12,
-            totalPages: 1
-          });
 
+            totalPages: 1
+
+          });
         })
       );
   }
@@ -573,9 +898,12 @@ export class ProductService {
 
       return of(
         this.products.find(
-          p => p.id === id
+          product =>
+            product.id === id
         ) || null
-      ).pipe(delay(150));
+      ).pipe(
+        delay(150)
+      );
     }
 
     return this.http
@@ -585,7 +913,9 @@ export class ProductService {
       .pipe(
 
         map(response =>
-          response?.data ?? response
+          this.unwrap<Product | null>(
+            response
+          )
         ),
 
         catchError(error => {
@@ -612,18 +942,15 @@ export class ProductService {
 
       const product =
         this.products.find(
-          p => p.slug === slug
+          item =>
+            item.slug === slug
         ) || null;
 
       return of(product)
-        .pipe(delay(200));
+        .pipe(
+          delay(200)
+        );
     }
-
-    /*
-     * Swagger confirms:
-     *
-     * GET /api/products/slug/{slug}
-     */
 
     return this.http
       .get<any>(
@@ -632,7 +959,9 @@ export class ProductService {
       .pipe(
 
         map(response =>
-          response?.data ?? response
+          this.unwrap<Product | null>(
+            response
+          )
         ),
 
         catchError(error => {
@@ -657,39 +986,32 @@ export class ProductService {
 
       return of(
         this.products.filter(
-          p =>
-            p.isFeatured &&
-            p.isActive
+          product =>
+            product.isFeatured &&
+            product.isActive
         )
-      ).pipe(delay(200));
+      ).pipe(
+        delay(200)
+      );
     }
-
-    /*
-     * IMPORTANT:
-     *
-     * There is NO:
-     *
-     * GET /api/products/featured
-     *
-     * in your Swagger API.
-     *
-     * Therefore we use the existing
-     * GET /api/products endpoint.
-     *
-     * We request a larger page and
-     * filter featured products on the
-     * frontend.
-     */
 
     const params =
       new HttpParams()
-        .set('page', '1')
-        .set('pageSize', '100');
+        .set(
+          'page',
+          '1'
+        )
+        .set(
+          'pageSize',
+          '100'
+        );
 
     return this.http
       .get<any>(
         `${environment.apiUrl}/products`,
-        { params }
+        {
+          params
+        }
       )
       .pipe(
 
@@ -702,16 +1024,17 @@ export class ProductService {
           const products: Product[] =
             Array.isArray(data)
               ? data
-              : Array.isArray(data?.items)
+              : Array.isArray(
+                  data?.items
+                )
                 ? data.items
                 : [];
 
           return products.filter(
-            p =>
-              p.isFeatured &&
-              p.isActive
+            product =>
+              product.isFeatured &&
+              product.isActive
           );
-
         }),
 
         catchError(error => {
@@ -740,39 +1063,40 @@ export class ProductService {
       return of(
         this.products
           .filter(
-            p =>
-              p.categoryId === categoryId &&
-              p.id !== productId &&
-              p.isActive
+            product =>
+              product.categoryId ===
+                categoryId &&
+              product.id !==
+                productId &&
+              product.isActive
           )
           .slice(0, 4)
-      ).pipe(delay(150));
+      ).pipe(
+        delay(150)
+      );
     }
-
-    /*
-     * IMPORTANT:
-     *
-     * Your Swagger does NOT have:
-     *
-     * GET /api/products/{id}/related
-     *
-     * So we use the existing:
-     *
-     * GET /api/products
-     *
-     * and filter by category.
-     */
 
     const params =
       new HttpParams()
-        .set('categoryId', String(categoryId))
-        .set('page', '1')
-        .set('pageSize', '20');
+        .set(
+          'categoryId',
+          String(categoryId)
+        )
+        .set(
+          'page',
+          '1'
+        )
+        .set(
+          'pageSize',
+          '20'
+        );
 
     return this.http
       .get<any>(
         `${environment.apiUrl}/products`,
-        { params }
+        {
+          params
+        }
       )
       .pipe(
 
@@ -785,18 +1109,20 @@ export class ProductService {
           const products: Product[] =
             Array.isArray(data)
               ? data
-              : Array.isArray(data?.items)
+              : Array.isArray(
+                  data?.items
+                )
                 ? data.items
                 : [];
 
           return products
             .filter(
-              p =>
-                p.id !== productId &&
-                p.isActive
+              product =>
+                product.id !==
+                  productId &&
+                product.isActive
             )
             .slice(0, 4);
-
         }),
 
         catchError(error => {
@@ -817,7 +1143,7 @@ export class ProductService {
 
   createProduct(
     data: Partial<Product> & {
-      mainImageUrl?: string
+      mainImageUrl?: string;
     }
   ): Observable<Product> {
 
@@ -829,25 +1155,34 @@ export class ProductService {
           data
         )
         .pipe(
-          map(r => r?.data ?? r)
+
+          map(response =>
+            this.unwrap<Product>(
+              response
+            )
+          )
         );
     }
 
-    const cat =
+    const category =
       this.categories.find(
-        c => c.id === data.categoryId
+        item =>
+          item.id ===
+          data.categoryId
       );
 
     const id =
       Math.max(
         0,
         ...this.products.map(
-          p => p.id
+          product =>
+            product.id
         )
       ) + 1;
 
     const name =
-      data.name || 'Untitled';
+      data.name ||
+      'Untitled';
 
     const imageUrl =
       data.mainImageUrl ||
@@ -866,35 +1201,43 @@ export class ProductService {
         id,
 
       description:
-        data.description || '',
+        data.description ||
+        '',
 
       specifications:
-        data.specifications || '',
+        data.specifications ||
+        '',
 
       price:
-        data.price ?? 0,
+        data.price ??
+        0,
 
       discountPrice:
-        data.discountPrice ?? null,
+        data.discountPrice ??
+        null,
 
       stockQuantity:
-        data.stockQuantity ?? 0,
+        data.stockQuantity ??
+        0,
 
       lowStockThreshold:
-        data.lowStockThreshold ?? 5,
+        data.lowStockThreshold ??
+        5,
 
       sku:
         data.sku ||
         `SKU-${id}`,
 
       brand:
-        data.brand || '',
+        data.brand ||
+        '',
 
       categoryId:
-        data.categoryId || 10,
+        data.categoryId ??
+        10,
 
       categoryName:
-        cat?.name ||
+        category?.name ||
         'Other Accessories',
 
       isFeatured:
@@ -909,13 +1252,23 @@ export class ProductService {
 
       images:
         imageUrl
-          ? [{
-              id: id * 10,
-              productId: id,
-              imageUrl,
-              isMain: true,
-              sortOrder: 0
-            }]
+          ? [
+              {
+                id:
+                  id * 10,
+
+                productId:
+                  id,
+
+                imageUrl,
+
+                isMain:
+                  true,
+
+                sortOrder:
+                  0
+              }
+            ]
           : [],
 
       colors:
@@ -933,7 +1286,9 @@ export class ProductService {
     this.persist();
 
     return of(product)
-      .pipe(delay(400));
+      .pipe(
+        delay(400)
+      );
   }
 
   // ============================================================
@@ -943,7 +1298,7 @@ export class ProductService {
   updateProduct(
     id: number,
     data: Partial<Product> & {
-      mainImageUrl?: string
+      mainImageUrl?: string;
     }
   ): Observable<Product | null> {
 
@@ -955,40 +1310,54 @@ export class ProductService {
           data
         )
         .pipe(
-          map(r => r?.data ?? r)
+
+          map(response =>
+            this.unwrap<Product | null>(
+              response
+            )
+          )
         );
     }
 
-    const idx =
+    const index =
       this.products.findIndex(
-        p => p.id === id
+        product =>
+          product.id === id
       );
 
-    if (idx < 0) {
+    if (index < 0) {
+
       return of(null)
-        .pipe(delay(200));
+        .pipe(
+          delay(200)
+        );
     }
 
     const existing =
-      this.products[idx];
+      this.products[index];
 
-    const cat =
+    const category =
       this.categories.find(
-        c =>
-          c.id ===
-          (data.categoryId ??
-            existing.categoryId)
+        item =>
+          item.id ===
+          (
+            data.categoryId ??
+            existing.categoryId
+          )
       );
 
     const existingImages =
       existing.images ?? [];
 
+    const existingMainImage =
+      existingImages.find(
+        image =>
+          image.isMain
+      )?.imageUrl || '';
+
     const imageUrl =
       data.mainImageUrl ||
-      existingImages.find(
-        i => i.isMain
-      )?.imageUrl ||
-      '';
+      existingMainImage;
 
     const updated: Product = {
 
@@ -1000,7 +1369,9 @@ export class ProductService {
 
       slug:
         data.name
-          ? this.slugify(data.name) +
+          ? this.slugify(
+              data.name
+            ) +
             '-' +
             id
           : existing.slug,
@@ -1018,7 +1389,8 @@ export class ProductService {
         existing.price,
 
       discountPrice:
-        data.discountPrice !== undefined
+        data.discountPrice !==
+        undefined
           ? data.discountPrice
           : existing.discountPrice,
 
@@ -1043,7 +1415,7 @@ export class ProductService {
         existing.categoryId,
 
       categoryName:
-        cat?.name ||
+        category?.name ||
         existing.categoryName,
 
       isFeatured:
@@ -1060,27 +1432,40 @@ export class ProductService {
 
       images:
         imageUrl
-          ? [{
-              id: id * 10,
-              productId: id,
-              imageUrl,
-              isMain: true,
-              sortOrder: 0
-            }]
+          ? [
+              {
+                id:
+                  id * 10,
+
+                productId:
+                  id,
+
+                imageUrl,
+
+                isMain:
+                  true,
+
+                sortOrder:
+                  0
+              }
+            ]
           : existingImages
     };
 
     this.products =
-      this.products.map(p =>
-        p.id === id
-          ? updated
-          : p
+      this.products.map(
+        product =>
+          product.id === id
+            ? updated
+            : product
       );
 
     this.persist();
 
     return of(updated)
-      .pipe(delay(400));
+      .pipe(
+        delay(400)
+      );
   }
 
   // ============================================================
@@ -1098,21 +1483,49 @@ export class ProductService {
           `${environment.apiUrl}/products/${id}`
         )
         .pipe(
-          map(
-            r => r?.success !== false
-          )
+
+          map(response =>
+            response?.success !== false
+          ),
+
+          catchError(error => {
+
+            console.error(
+              'Failed to delete product:',
+              error
+            );
+
+            return of(false);
+          })
+        );
+    }
+
+    const exists =
+      this.products.some(
+        product =>
+          product.id === id
+      );
+
+    if (!exists) {
+
+      return of(false)
+        .pipe(
+          delay(250)
         );
     }
 
     this.products =
       this.products.filter(
-        p => p.id !== id
+        product =>
+          product.id !== id
       );
 
     this.persist();
 
     return of(true)
-      .pipe(delay(250));
+      .pipe(
+        delay(250)
+      );
   }
 
   // ============================================================
@@ -1121,7 +1534,9 @@ export class ProductService {
 
   uploadImage(
     file: File
-  ): Observable<{ imageUrl: string }> {
+  ): Observable<{
+    imageUrl: string;
+  }> {
 
     if (this.useMock) {
 
@@ -1134,20 +1549,25 @@ export class ProductService {
           reader.onload = () => {
 
             observer.next({
+
               imageUrl:
                 reader.result as string
+
             });
 
             observer.complete();
           };
 
           reader.onerror = () => {
+
             observer.error(
               reader.error
             );
           };
 
-          reader.readAsDataURL(file);
+          reader.readAsDataURL(
+            file
+          );
         }
       );
     }
@@ -1160,16 +1580,37 @@ export class ProductService {
       file
     );
 
-    /*
-     * Swagger confirms:
-     *
-     * POST /api/products/upload
-     */
-
     return this.http
-      .post<{ imageUrl: string }>(
+      .post<any>(
         `${environment.apiUrl}/products/upload`,
         formData
+      )
+      .pipe(
+
+        map(response => {
+
+          const data =
+            response?.data ??
+            response;
+
+          return {
+
+            imageUrl:
+              data?.imageUrl ||
+              ''
+
+          };
+        }),
+
+        catchError(error => {
+
+          console.error(
+            'Failed to upload product image:',
+            error
+          );
+
+          throw error;
+        })
       );
   }
 }

@@ -16,175 +16,417 @@ import { Category } from '../../../core/models';
         <span>/</span>
         <span>{{ isEdit() ? 'Edit Product' : 'Add Product' }}</span>
       </nav>
+
       <h1>{{ isEdit() ? 'Edit Product' : 'Add Product' }}</h1>
 
       <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-layout">
         <div class="main-col">
+
           <section class="card section">
             <h3>Product Information</h3>
+
             <div class="form-group">
               <label class="form-label">Product Name *</label>
-              <input class="form-control" formControlName="name" placeholder="e.g. Crystal Clear iPhone 15 Case" />
+              <input
+                class="form-control"
+                formControlName="name"
+                placeholder="e.g. Crystal Clear iPhone 15 Case" />
             </div>
+
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">SKU *</label>
-                <input class="form-control" formControlName="sku" placeholder="CASE-IP15-CLR" />
+                <input
+                  class="form-control"
+                  formControlName="sku"
+                  placeholder="CASE-IP15-CLR" />
               </div>
+
               <div class="form-group">
                 <label class="form-label">Brand</label>
-                <input class="form-control" formControlName="brand" placeholder="LuxeShield" />
+                <input
+                  class="form-control"
+                  formControlName="brand"
+                  placeholder="LuxeShield" />
               </div>
             </div>
+
             <div class="form-group">
               <label class="form-label">Category *</label>
+
               <select class="form-control" formControlName="categoryId">
                 <option [ngValue]="null">Select category</option>
+
                 @for (c of categories(); track c.id) {
-                  <option [ngValue]="c.id">{{ c.name }}</option>
+                  <option [ngValue]="c.id">
+                    {{ c.name }}
+                  </option>
                 }
               </select>
             </div>
           </section>
 
+
           <section class="card section">
             <h3>Pricing</h3>
+
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label">Regular Price (Rs.) *</label>
-                <input type="number" class="form-control" formControlName="price" min="0" step="1" />
+                <label class="form-label">
+                  Regular Price (Rs.) *
+                </label>
+
+                <input
+                  type="number"
+                  class="form-control"
+                  formControlName="price"
+                  min="0"
+                  step="1" />
               </div>
+
               <div class="form-group">
-                <label class="form-label">Discount Price (Rs.)</label>
-                <input type="number" class="form-control" formControlName="discountPrice" min="0" step="1" />
+                <label class="form-label">
+                  Discount Price (Rs.)
+                </label>
+
+                <input
+                  type="number"
+                  class="form-control"
+                  formControlName="discountPrice"
+                  min="0"
+                  step="1" />
               </div>
             </div>
           </section>
+
 
           <section class="card section">
             <h3>Inventory</h3>
+
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label">Stock Quantity *</label>
-                <input type="number" class="form-control" formControlName="stockQuantity" min="0" />
+                <label class="form-label">
+                  Stock Quantity *
+                </label>
+
+                <input
+                  type="number"
+                  class="form-control"
+                  formControlName="stockQuantity"
+                  min="0" />
               </div>
+
               <div class="form-group">
-                <label class="form-label">Low Stock Threshold</label>
-                <input type="number" class="form-control" formControlName="lowStockThreshold" min="0" />
+                <label class="form-label">
+                  Low Stock Threshold
+                </label>
+
+                <input
+                  type="number"
+                  class="form-control"
+                  formControlName="lowStockThreshold"
+                  min="0" />
               </div>
             </div>
           </section>
+
 
           <section class="card section">
             <h3>Description</h3>
+
             <div class="form-group">
-              <textarea class="form-control" formControlName="description" rows="4"
-                        placeholder="Product description..."></textarea>
+              <textarea
+                class="form-control"
+                formControlName="description"
+                rows="4"
+                placeholder="Product description...">
+              </textarea>
             </div>
+
             <div class="form-group">
-              <label class="form-label">Specifications</label>
-              <textarea class="form-control" formControlName="specifications" rows="3"
-                        placeholder="Material: ...&#10;Compatibility: ..."></textarea>
+              <label class="form-label">
+                Specifications
+              </label>
+
+              <textarea
+                class="form-control"
+                formControlName="specifications"
+                rows="3"
+                placeholder="Material: ...
+Compatibility: ...">
+              </textarea>
             </div>
+
             <div class="form-group">
-              <label class="form-label">Colors (comma-separated)</label>
-              <input class="form-control" formControlName="colors" placeholder="Clear, Smoke, Rose Gold" />
+              <label class="form-label">
+                Colors (comma-separated)
+              </label>
+
+              <input
+                class="form-control"
+                formControlName="colors"
+                placeholder="Clear, Smoke, Rose Gold" />
             </div>
           </section>
+
 
           <section class="card section">
             <h3>Images</h3>
+
             <div class="form-group">
-              <label class="form-label">Upload Main Image</label>
-              <div class="upload-zone" (click)="fileInput.click()" (dragover)="$event.preventDefault()" (drop)="onDrop($event)">
+              <label class="form-label">
+                Upload Main Image
+              </label>
+
+              <div
+                class="upload-zone"
+                (click)="fileInput.click()"
+                (dragover)="$event.preventDefault()"
+                (drop)="onDrop($event)">
+
                 @if (previewUrl() || form.value.mainImageUrl) {
-                  <img [src]="previewUrl() || form.value.mainImageUrl" alt="Preview" class="preview-img" />
-                  <p class="upload-hint">Click or drop to replace</p>
+
+                  <img
+                    [src]="previewUrl() || form.value.mainImageUrl"
+                    alt="Preview"
+                    class="preview-img" />
+
+                  <p class="upload-hint">
+                    Click or drop to replace
+                  </p>
+
+                  @if (selectedFile()) {
+                    <p class="selected-file">
+                      {{ selectedFile()!.name }}
+                    </p>
+                  }
+
                 } @else {
-                  <p class="upload-placeholder">📷 Click or drag image here</p>
-                  <p class="upload-hint">PNG, JPG up to 5MB</p>
+
+                  <p class="upload-placeholder">
+                    📷 Click or drag image here
+                  </p>
+
+                  <p class="upload-hint">
+                    PNG, JPG, WEBP up to 5MB
+                  </p>
                 }
               </div>
-              <input #fileInput type="file" accept="image/*" hidden (change)="onFileSelect($event)" />
+
+              <input
+                #fileInput
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                hidden
+                (change)="onFileSelect($event)" />
             </div>
+
+
             <div class="form-group">
-              <label class="form-label">Or paste Image URL</label>
-              <input class="form-control" formControlName="mainImageUrl" placeholder="https://..." (input)="previewUrl.set('')" />
+              <label class="form-label">
+                Or paste Image URL
+              </label>
+
+              <input
+                class="form-control"
+                formControlName="mainImageUrl"
+                placeholder="https://..."
+                (input)="onImageUrlInput()" />
             </div>
           </section>
+
         </div>
 
+
         <aside class="side-col">
+
           <section class="card section sticky">
+
             <h3>Visibility</h3>
+
             <label class="check-row">
-              <input type="checkbox" formControlName="isActive" />
-              <span>Active (visible to customers)</span>
-            </label>
-            <label class="check-row">
-              <input type="checkbox" formControlName="isFeatured" />
-              <span>Featured product</span>
+              <input
+                type="checkbox"
+                formControlName="isActive" />
+
+              <span>
+                Active (visible to customers)
+              </span>
             </label>
 
+            <label class="check-row">
+              <input
+                type="checkbox"
+                formControlName="isFeatured" />
+
+              <span>
+                Featured product
+              </span>
+            </label>
+
+
             <div class="form-actions">
-              <button type="submit" class="btn btn-primary" [disabled]="form.invalid || saving()">
-                {{ saving() ? 'Saving...' : (isEdit() ? 'Update Product' : 'Create Product') }}
+
+              <button
+                type="submit"
+                class="btn btn-primary"
+                [disabled]="form.invalid || saving()">
+
+                {{ saving()
+                  ? (selectedFile() ? 'Uploading & Saving...' : 'Saving...')
+                  : (isEdit() ? 'Update Product' : 'Create Product')
+                }}
+
               </button>
-              <a routerLink="/admin/products" class="btn btn-outline">Cancel</a>
+
+              <a
+                routerLink="/admin/products"
+                class="btn btn-outline">
+
+                Cancel
+
+              </a>
+
             </div>
+
           </section>
+
         </aside>
       </form>
     </div>
   `,
+
   styles: [`
-    .breadcrumb { font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 0.75rem; display: flex; gap: 0.5rem; }
-    .breadcrumb a { color: var(--color-text-muted); }
-    h1 { font-size: 1.5rem; margin-bottom: 1.5rem; }
+    .breadcrumb {
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+      margin-bottom: 0.75rem;
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .breadcrumb a {
+      color: var(--color-text-muted);
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
 
     .form-layout {
-      display: grid; grid-template-columns: 1fr 280px; gap: 1.5rem; align-items: start;
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      gap: 1.5rem;
+      align-items: start;
     }
-    .section { padding: 1.25rem; margin-bottom: 1.25rem; }
+
+    .section {
+      padding: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+
     .section h3 {
-      font-size: 1rem; font-family: var(--font-body); margin-bottom: 1rem;
-      padding-bottom: 0.6rem; border-bottom: 1px solid var(--color-border);
+      font-size: 1rem;
+      font-family: var(--font-body);
+      margin-bottom: 1rem;
+      padding-bottom: 0.6rem;
+      border-bottom: 1px solid var(--color-border);
     }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    .sticky { position: sticky; top: 80px; }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .sticky {
+      position: sticky;
+      top: 80px;
+    }
+
     .check-row {
-      display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.85rem;
-      font-size: 0.95rem; cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 0.85rem;
+      font-size: 0.95rem;
+      cursor: pointer;
     }
-    .check-row input { accent-color: var(--color-primary-dark); }
-    .form-actions { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 1.25rem; }
-    .form-actions .btn { width: 100%; }
-    .img-preview {
-      margin-top: 0.75rem; border-radius: var(--radius-md); overflow: hidden;
-      max-width: 200px; background: var(--color-blush);
+
+    .check-row input {
+      accent-color: var(--color-primary-dark);
     }
-    .img-preview img { width: 100%; display: block; }
+
+    .form-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      margin-top: 1.25rem;
+    }
+
+    .form-actions .btn {
+      width: 100%;
+    }
+
     .upload-zone {
-      border: 2px dashed var(--color-border); border-radius: var(--radius-md);
-      padding: 1.5rem; text-align: center; cursor: pointer; background: var(--color-blush);
+      border: 2px dashed var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      background: var(--color-blush);
       transition: border-color 0.2s;
     }
-    .upload-zone:hover { border-color: var(--color-primary); }
-    .upload-placeholder { font-size: 1rem; margin-bottom: 0.35rem; }
-    .upload-hint { font-size: 0.8rem; color: var(--color-text-muted); }
+
+    .upload-zone:hover {
+      border-color: var(--color-primary);
+    }
+
+    .upload-placeholder {
+      font-size: 1rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .upload-hint {
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+    }
+
+    .selected-file {
+      margin-top: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--color-primary-dark);
+      font-weight: 500;
+      word-break: break-word;
+    }
+
     .preview-img {
-      max-width: 180px; max-height: 180px; border-radius: var(--radius-sm);
-      object-fit: cover; margin: 0 auto 0.5rem; display: block;
+      max-width: 180px;
+      max-height: 180px;
+      border-radius: var(--radius-sm);
+      object-fit: cover;
+      margin: 0 auto 0.5rem;
+      display: block;
     }
 
     @media (max-width: 900px) {
-      .form-layout { grid-template-columns: 1fr; }
-      .sticky { position: static; }
-      .form-row { grid-template-columns: 1fr; }
+      .form-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .sticky {
+        position: static;
+      }
+
+      .form-row {
+        grid-template-columns: 1fr;
+      }
     }
   `]
 })
 export class AdminProductFormComponent implements OnInit {
+
   private fb = inject(FormBuilder);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -194,8 +436,16 @@ export class AdminProductFormComponent implements OnInit {
   categories = signal<Category[]>([]);
   isEdit = signal(false);
   saving = signal(false);
+
   productId: number | null = null;
+
   previewUrl = signal('');
+
+  // IMPORTANT:
+  // Keep the real File separately.
+  // Do NOT put Base64 into mainImageUrl.
+  selectedFile = signal<File | null>(null);
+
 
   form = this.fb.nonNullable.group({
     name: ['', Validators.required],
@@ -214,16 +464,29 @@ export class AdminProductFormComponent implements OnInit {
     isFeatured: [false]
   });
 
+
   ngOnInit(): void {
-    this.productService.getCategories().subscribe(c => this.categories.set(c));
+
+    this.productService
+      .getCategories()
+      .subscribe(c => this.categories.set(c));
+
 
     this.route.paramMap.subscribe(params => {
+
       const id = params.get('id');
+
       if (id && id !== 'new') {
+
         this.isEdit.set(true);
         this.productId = +id;
-        this.productService.getProductById(+id).subscribe(p => {
-          if (p) {
+
+        this.productService
+          .getProductById(+id)
+          .subscribe(p => {
+
+            if (!p) return;
+
             this.form.patchValue({
               name: p.name,
               sku: p.sku,
@@ -236,91 +499,330 @@ export class AdminProductFormComponent implements OnInit {
               description: p.description,
               specifications: p.specifications || '',
               colors: p.colors?.join(', ') || '',
-              mainImageUrl: p.images.find(i => i.isMain)?.imageUrl || '',
+              mainImageUrl:
+                p.images.find(i => i.isMain)?.imageUrl || '',
               isActive: p.isActive,
               isFeatured: p.isFeatured
             });
-          }
-        });
+
+          });
       }
     });
   }
 
+
   onFileSelect(event: Event): void {
+
     const input = event.target as HTMLInputElement;
+
     const file = input.files?.[0];
-    if (file) this.setPreview(file);
+
+    if (!file) return;
+
+    this.setPreview(file);
+
+    // Allow selecting the same file again later.
+    input.value = '';
   }
+
 
   onDrop(event: DragEvent): void {
+
     event.preventDefault();
-    const file = event.dataTransfer?.files?.[0];
-    if (file && file.type.startsWith('image/')) this.setPreview(file);
+
+    const file =
+      event.dataTransfer?.files?.[0];
+
+    if (
+      file &&
+      file.type.startsWith('image/')
+    ) {
+      this.setPreview(file);
+    }
   }
+
 
   private setPreview(file: File): void {
+
     if (file.size > 5 * 1024 * 1024) {
-      this.toast.error('Image must be under 5MB');
+
+      this.toast.error(
+        'Image must be under 5MB'
+      );
+
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      this.previewUrl.set(dataUrl);
-      this.form.patchValue({ mainImageUrl: dataUrl });
-      this.toast.success('Image attached — will save with product');
-    };
-    reader.onerror = () => this.toast.error('Could not read image');
-    reader.readAsDataURL(file);
+
+    // Store the actual file.
+    this.selectedFile.set(file);
+
+    // IMPORTANT:
+    // This Base64 URL is ONLY used for the browser preview.
+    // It is NOT saved into the form or sent to the API.
+    const objectUrl =
+      URL.createObjectURL(file);
+
+    this.previewUrl.set(objectUrl);
+
+    // Remove any old URL when a new local image is selected.
+    this.form.patchValue({
+      mainImageUrl: ''
+    });
+
+    this.toast.success(
+      'Image attached — it will upload automatically when you save'
+    );
   }
 
+
+  onImageUrlInput(): void {
+
+    // If user manually enters a URL,
+    // remove the selected local file.
+    this.selectedFile.set(null);
+
+    this.previewUrl.set('');
+  }
+
+
+  /**
+   * Upload the selected image automatically.
+   *
+   * The user does NOT need to copy the returned URL.
+   */
+  private uploadSelectedImage(): ReturnType<
+    ProductService['uploadImage']
+  > {
+
+    const file = this.selectedFile();
+
+    if (!file) {
+      throw new Error('No image selected');
+    }
+
+    return this.productService.uploadImage(file);
+  }
+
+
   onSubmit(): void {
+
     if (this.form.invalid) {
+
       this.form.markAllAsTouched();
-      this.toast.error('Please fill required fields');
+
+      this.toast.error(
+        'Please fill required fields'
+      );
+
       return;
     }
+
     this.saving.set(true);
+
     const v = this.form.getRawValue();
+
     const colors = (v.colors || '')
       .split(',')
       .map((c: string) => c.trim())
       .filter(Boolean);
-    const payload = {
-      name: v.name,
-      sku: v.sku,
-      brand: v.brand,
-      categoryId: v.categoryId as number,
-      price: Number(v.price),
-      discountPrice: v.discountPrice != null && v.discountPrice !== ('' as unknown) ? Number(v.discountPrice) : null,
-      stockQuantity: Number(v.stockQuantity),
-      lowStockThreshold: Number(v.lowStockThreshold),
-      description: v.description,
-      specifications: v.specifications,
-      colors,
-      mainImageUrl: v.mainImageUrl || this.previewUrl(),
-      isActive: v.isActive,
-      isFeatured: v.isFeatured
+
+
+    // If a local file was selected:
+    //
+    // 1. Upload it automatically.
+    // 2. Get the short server URL.
+    // 3. Create/update the product with that URL.
+    //
+    // If no local file was selected:
+    //
+    // Use the manually entered image URL.
+    const imageRequest$ = this.selectedFile()
+      ? this.uploadSelectedImage()
+      : null;
+
+
+    const saveProduct = (imageUrl: string) => {
+
+      const payload = {
+
+        name: v.name,
+
+        sku: v.sku,
+
+        brand: v.brand,
+
+        categoryId:
+          v.categoryId as number,
+
+        price:
+          Number(v.price),
+
+        discountPrice:
+          v.discountPrice != null &&
+          v.discountPrice !== ('' as unknown)
+            ? Number(v.discountPrice)
+            : null,
+
+        stockQuantity:
+          Number(v.stockQuantity),
+
+        lowStockThreshold:
+          Number(v.lowStockThreshold),
+
+        description:
+          v.description,
+
+        specifications:
+          v.specifications,
+
+        colors,
+
+        // This is now ALWAYS a normal URL.
+        mainImageUrl:
+          imageUrl.trim(),
+
+        isActive:
+          v.isActive,
+
+        isFeatured:
+          v.isFeatured
+      };
+
+
+      const req$ =
+        this.isEdit() && this.productId
+          ? this.productService.updateProduct(
+              this.productId,
+              payload
+            )
+          : this.productService.createProduct(
+              payload
+            );
+
+
+      req$.subscribe({
+
+        next: (p) => {
+
+          this.saving.set(false);
+
+          if (!p) {
+
+            this.toast.error(
+              'Product not found'
+            );
+
+            return;
+          }
+
+          this.toast.success(
+            this.isEdit()
+              ? 'Product updated successfully'
+              : 'Product created successfully'
+          );
+
+          this.router.navigate([
+            '/admin/products'
+          ]);
+        },
+
+        error: (err) => {
+
+          console.error(
+            'Product save failed:',
+            err
+          );
+
+          this.saving.set(false);
+
+          this.toast.error(
+            err?.error?.message ||
+            'Save failed'
+          );
+        }
+
+      });
     };
 
-    const req$ = this.isEdit() && this.productId
-      ? this.productService.updateProduct(this.productId, payload)
-      : this.productService.createProduct(payload);
 
-    req$.subscribe({
-      next: (p) => {
-        this.saving.set(false);
-        if (!p) {
-          this.toast.error('Product not found');
-          return;
+    if (imageRequest$) {
+
+      // Upload selected image automatically.
+      imageRequest$.subscribe({
+
+        next: (response: any) => {
+
+          console.log(
+            'Image upload response:',
+            response
+          );
+
+          /*
+           * Your backend wraps the response in ApiResponse.
+           *
+           * Expected:
+           *
+           * {
+           *   data: {
+           *     imageUrl: "https://..."
+           *   }
+           * }
+           *
+           * But this also supports a direct:
+           *
+           * {
+           *   imageUrl: "https://..."
+           * }
+           */
+          const imageUrl =
+            response?.data?.imageUrl ||
+            response?.imageUrl ||
+            '';
+
+          if (!imageUrl) {
+
+            console.error(
+              'Upload response did not contain imageUrl:',
+              response
+            );
+
+            this.saving.set(false);
+
+            this.toast.error(
+              'Image uploaded but no image URL was returned'
+            );
+
+            return;
+          }
+
+          // Now save the product automatically.
+          saveProduct(imageUrl);
+        },
+
+        error: (err) => {
+
+          console.error(
+            'Image upload failed:',
+            err
+          );
+
+          this.saving.set(false);
+
+          this.toast.error(
+            err?.error?.message ||
+            'Image upload failed'
+          );
         }
-        this.toast.success(this.isEdit() ? 'Product updated successfully' : 'Product uploaded to store');
-        this.router.navigate(['/admin/products']);
-      },
-      error: () => {
-        this.saving.set(false);
-        this.toast.error('Save failed');
-      }
-    });
+
+      });
+
+    } else {
+
+      // No local file.
+      // Use the manually entered URL.
+      saveProduct(
+        (v.mainImageUrl || '').trim()
+      );
+    }
   }
 }
