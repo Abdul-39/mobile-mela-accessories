@@ -82,14 +82,11 @@ import { NavbarComponent } from '../../../layout/navbar/navbar';
 
               </div>
 
-              @if ((product()!.images ?? []).length > 1) {
+              @if (product()!.images.length > 1) {
 
                 <div class="thumbs">
 
-                  @for (
-                    img of (product()!.images ?? []);
-                    track img.id
-                  ) {
+                @for (img of product()!.images; track img) {
 
                     <button
                       type="button"
