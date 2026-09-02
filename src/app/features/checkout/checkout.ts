@@ -103,7 +103,7 @@ interface CheckoutOrderPayload {
             </p>
 
             <p class="muted">
-              Estimated delivery: 2–5 business days
+              Estimated delivery: 5–7 business days
             </p>
 
             <p class="cancel-note">
