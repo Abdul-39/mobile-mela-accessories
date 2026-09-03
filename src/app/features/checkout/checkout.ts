@@ -987,7 +987,7 @@ export class CheckoutComponent implements OnInit {
    * Example:
    * 923001234567
    */
-  private storeWhatsApp = '923001234567';
+  private storeWhatsApp = '923115374421';
 
 
   infoForm = this.fb.nonNullable.group({
