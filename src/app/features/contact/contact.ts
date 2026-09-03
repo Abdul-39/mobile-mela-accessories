@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { NavbarComponent } from '../../layout/navbar/navbar';
 import { FooterComponent } from '../../layout/footer/footer';
 import { ToastService } from '../../core/services/toast.service';
@@ -148,6 +149,7 @@ import { environment } from '../../../environments/environment';
 })
 export class ContactComponent {
   private toast = inject(ToastService);
+  private http = inject(HttpClient);
 
   storeName = environment.storeName || 'Mobile Mela Accessories';
   /** Update these to your real store details */
@@ -167,18 +169,33 @@ export class ContactComponent {
       return;
     }
     this.sending.set(true);
-    // Persist contact messages locally (demo until contact API exists)
-    try {
-      const key = 'luxe_contact_messages';
-      const prev = JSON.parse(localStorage.getItem(key) || '[]');
-      prev.unshift({ ...this.model, at: new Date().toISOString() });
-      localStorage.setItem(key, JSON.stringify(prev.slice(0, 50)));
-    } catch { /* ignore */ }
-    setTimeout(() => {
-      this.sending.set(false);
-      this.sent.set(true);
-      this.toast.success('Message sent');
-      this.model = { name: '', email: '', phone: '', subject: 'Order help', message: '' };
-    }, 500);
+
+    this.http
+      .post<{ success?: boolean; message?: string }>(
+        `${environment.apiUrl}/contact-messages`,
+        {
+          name: this.model.name.trim(),
+          email: this.model.email.trim(),
+          phone: this.model.phone?.trim() || null,
+          subject: this.model.subject || 'Other',
+          message: this.model.message.trim()
+        }
+      )
+      .subscribe({
+        next: () => {
+          this.sending.set(false);
+          this.sent.set(true);
+          this.toast.success('Message sent successfully');
+          this.model = { name: '', email: '', phone: '', subject: 'Order help', message: '' };
+        },
+        error: (err) => {
+          this.sending.set(false);
+          const msg =
+            err?.error?.message ||
+            err?.error?.title ||
+            'Failed to send message. Please try again.';
+          this.toast.error(msg);
+        }
+      });
   }
 }
