@@ -50,7 +50,7 @@ import { environment } from '../../../environments/environment';
             <span class="icon">🕐</span>
             <div>
               <h3>Hours</h3>
-              <p>Mon–Sat · 11:00 AM – 8:00 PM<br />Sunday · Closed</p>
+              <p>Mon–Sun · 7:00 AM – 10:00 PM</p>
             </div>
           </div>
         </div>
