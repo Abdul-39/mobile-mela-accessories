@@ -153,11 +153,11 @@ export class ContactComponent {
 
   storeName = environment.storeName || 'Mobile Mela Accessories';
   /** Update these to your real store details */
-  address = 'Shop 12, Main Market, Lahore, Pakistan';
+  address = 'village Alipur Farash, Islamabad, Pakistan';
   phoneDisplay = '03115374421';
   phoneTel = '+923115374421';
   email = 'ssgcommando471@gmail.com';
-  waLink = 'https://wa.me/923115374421?text=' + encodeURIComponent('Hi! I have a question about Luxe Mobile Accessories.');
+  waLink = 'https://wa.me/923115374421?text=' + encodeURIComponent('Hi! I have a question about Mobile Mela Accessories.');
 
   model = { name: '', email: '', phone: '', subject: 'Order help', message: '' };
   sending = signal(false);
