@@ -18,7 +18,7 @@ import { environment } from '../../../environments/environment';
         <div class="container">
           <p class="eyebrow">We're here for you</p>
           <h1>Contact {{ storeName }}</h1>
-          <p class="lead">Questions about an order, product advice, or wholesale? Send a message — we reply within 24 hours.</p>
+          <p class="lead">Questions about an order, product advice, or wholesale? Send a message — we reply within 19 hours.</p>
         </div>
       </section>
 
