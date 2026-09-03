@@ -66,11 +66,23 @@ import { CartService } from '../../core/services/cart.service';
       height: 68px; gap: 1.5rem;
     }
     .logo {
-      display: flex; align-items: center; gap: 0.4rem;
-      font-family: var(--font-display); font-size: 1.45rem; font-weight: 600;
-      color: var(--color-text);
-    }
-    .logo-mark { color: var(--color-primary-dark); }
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.logo-mark {
+  color: var(--color-primary-dark);
+}
+
+.logo-text {
+  color: #d979a3;
+}
+
     .nav-links {
       display: flex; gap: 1.75rem; align-items: center;
     }

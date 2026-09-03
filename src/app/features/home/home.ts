@@ -126,10 +126,13 @@ import { FooterComponent } from '../../layout/footer/footer';
       font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.12em;
       color: var(--color-primary-dark); font-weight: 600; margin-bottom: 0.75rem;
     }
-    .hero h1 {
-      font-size: clamp(2.2rem, 4.5vw, 3.4rem); margin-bottom: 1rem;
-      line-height: 1.15;
-    }
+   .hero h1 {
+  font-size: clamp(2.2rem, 4.5vw, 3.4rem);
+  margin-bottom: 1rem;
+  line-height: 1.15;
+  color: #d979a3;
+}
+
     .lead { font-size: 1.1rem; color: var(--color-text-muted); margin-bottom: 1.75rem; max-width: 420px; }
     .hero-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
     .hero-visual { position: relative; display: flex; justify-content: center; }
@@ -148,9 +151,18 @@ import { FooterComponent } from '../../layout/footer/footer';
       display: flex; justify-content: space-between; align-items: baseline;
       margin-bottom: 1.75rem;
     }
-    .section-header h2 { font-size: 1.75rem; }
+    .section-header h2 { 
+  font-size: 1.75rem;
+  color: #d979a3;
+}
+
     .see-all { font-weight: 500; font-size: 0.95rem; }
-    .text-center { text-align: center; margin-bottom: 2rem; }
+   .text-center {
+  text-align: center;
+  margin-bottom: 2rem;
+  color: #d979a3;
+}
+
 
     .category-grid {
       display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1rem;
