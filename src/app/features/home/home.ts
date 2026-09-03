@@ -27,7 +27,7 @@ import { FooterComponent } from '../../layout/footer/footer';
           </div>
           <div class="hero-visual">
             <div class="hero-blob"></div>
-            <img src="/logo.jpeg" alt="Mobile Mela - Mobile Accessories Store" />
+            <img src="/logo.jpeg.png" alt="Mobile Mela - Mobile Accessories Store" />
           </div>
         </div>
       </section>
