@@ -1,15 +1,19 @@
 import { Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DecimalPipe, DatePipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { OrderService } from '../../core/services/order.service';
+import { ToastService } from '../../core/services/toast.service';
 import { Order, OrderStatus } from '../../core/models';
 import { NavbarComponent } from '../../layout/navbar/navbar';
 import { FooterComponent } from '../../layout/footer/footer';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-account-order-detail',
   standalone: true,
-  imports: [RouterLink, DecimalPipe, DatePipe, NavbarComponent, FooterComponent],
+  imports: [RouterLink, DecimalPipe, DatePipe, FormsModule, NavbarComponent, FooterComponent],
   template: `
     <app-navbar />
     <main class="page-enter">
@@ -114,6 +118,44 @@ import { FooterComponent } from '../../layout/footer/footer';
               </section>
             </div>
           </div>
+
+          <!-- Reviews: only when Delivered -->
+          @if (order()!.orderStatus === 'Delivered') {
+            <section class="card reviews-card">
+              <h2>Rate your products</h2>
+              <p class="muted" style="margin-bottom: 1rem;">Share your experience — it helps other customers.</p>
+              @for (item of order()!.items; track item.productId) {
+                <div class="review-item">
+                  <div class="review-head">
+                    @if (item.productImage) {
+                      <img [src]="item.productImage" [alt]="item.productName" />
+                    }
+                    <strong>{{ item.productName }}</strong>
+                  </div>
+                  @if (reviewedIds().has(item.productId)) {
+                    <p class="reviewed-ok">✓ Thank you — your review was submitted.</p>
+                  } @else {
+                    <div class="stars-pick">
+                      @for (s of [1,2,3,4,5]; track s) {
+                        <button type="button" class="star-btn"
+                          [class.on]="(ratings()[item.productId] || 0) >= s"
+                          (click)="setRating(item.productId, s)">★</button>
+                      }
+                    </div>
+                    <textarea class="form-control" rows="2"
+                      placeholder="Optional comment…"
+                      [ngModel]="comments()[item.productId] || ''"
+                      (ngModelChange)="setComment(item.productId, $event)"></textarea>
+                    <button type="button" class="btn btn-primary btn-sm"
+                      [disabled]="submittingId() === item.productId || !(ratings()[item.productId])"
+                      (click)="submitReview(item.productId)">
+                      {{ submittingId() === item.productId ? 'Submitting…' : 'Submit review' }}
+                    </button>
+                  }
+                </div>
+              }
+            </section>
+          }
         }
       </div>
     </main>
@@ -198,6 +240,22 @@ import { FooterComponent } from '../../layout/footer/footer';
     .status[data-status="Delivered"] { background: #e8f5e9; color: #2e7d32; }
     .status[data-status="Cancelled"] { background: #fce4ec; color: #c62828; }
 
+    .reviews-card .review-item {
+      padding: 1rem 0; border-bottom: 1px solid var(--color-border);
+    }
+    .reviews-card .review-item:last-child { border-bottom: none; }
+    .review-head { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
+    .review-head img { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; }
+    .stars-pick { margin-bottom: 0.5rem; }
+    .star-btn {
+      background: none; border: none; font-size: 1.4rem; color: #d1d5db; cursor: pointer;
+      padding: 0 0.15rem; line-height: 1;
+    }
+    .star-btn.on { color: #d4a017; }
+    .reviews-card textarea { width: 100%; margin-bottom: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid var(--color-border); font: inherit; }
+    .btn-sm { padding: 0.4rem 0.9rem; font-size: 0.85rem; }
+    .reviewed-ok { color: #047857; font-size: 0.9rem; margin: 0.25rem 0 0; }
+
     @media (max-width: 700px) {
       .grid { grid-template-columns: 1fr; }
       .cd-clock { margin-left: 0; width: 100%; }
@@ -207,11 +265,18 @@ import { FooterComponent } from '../../layout/footer/footer';
 export class AccountOrderDetailComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private orderService = inject(OrderService);
+  private http = inject(HttpClient);
+  private toast = inject(ToastService);
 
   order = signal<Order | null>(null);
   loading = signal(true);
   cancelling = signal(false);
   countdown = signal('');
+
+  ratings = signal<Record<number, number>>({});
+  comments = signal<Record<number, string>>({});
+  reviewedIds = signal<Set<number>>(new Set());
+  submittingId = signal<number | null>(null);
 
   private timer: ReturnType<typeof setInterval> | null = null;
 
@@ -242,6 +307,44 @@ export class AccountOrderDetailComponent implements OnInit, OnDestroy {
     if (this.timer) clearInterval(this.timer);
   }
 
+  setRating(productId: number, rating: number): void {
+    this.ratings.update(m => ({ ...m, [productId]: rating }));
+  }
+
+  setComment(productId: number, text: string): void {
+    this.comments.update(m => ({ ...m, [productId]: text }));
+  }
+
+  submitReview(productId: number): void {
+    const rating = this.ratings()[productId];
+    if (!rating) {
+      this.toast.error('Please select a star rating');
+      return;
+    }
+    this.submittingId.set(productId);
+    this.http
+      .post(`${environment.apiUrl}/reviews`, {
+        productId,
+        rating,
+        comment: (this.comments()[productId] || '').trim() || null
+      })
+      .subscribe({
+        next: () => {
+          this.submittingId.set(null);
+          this.reviewedIds.update(s => new Set(s).add(productId));
+          this.toast.success('Review submitted — thank you!');
+        },
+        error: (err) => {
+          this.submittingId.set(null);
+          const msg = err?.error?.message || 'Could not submit review. You may have already reviewed this product.';
+          this.toast.error(msg);
+          if (err?.status === 409) {
+            this.reviewedIds.update(s => new Set(s).add(productId));
+          }
+        }
+      });
+  }
+
   isDone(status: OrderStatus): boolean {
     const o = this.order();
     if (!o || o.orderStatus === 'Cancelled') return false;
@@ -269,7 +372,6 @@ export class AccountOrderDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  
   private pickReason(): string | null {
     const reasons = [
       'Changed mind',
