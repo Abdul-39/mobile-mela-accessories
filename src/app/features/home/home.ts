@@ -1,5 +1,6 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { DecimalPipe } from '@angular/common';
 import { ProductService } from '../../core/services/product.service';
 import { Product, Category } from '../../core/models';
 import { ProductCardComponent } from '../../shared/components/product-card/product-card';
@@ -9,7 +10,7 @@ import { FooterComponent } from '../../layout/footer/footer';
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [RouterLink, ProductCardComponent, NavbarComponent, FooterComponent],
+  imports: [RouterLink, DecimalPipe, ProductCardComponent, NavbarComponent, FooterComponent],
   template: `
     <app-navbar />
     <main class="page-enter">
@@ -32,6 +33,59 @@ import { FooterComponent } from '../../layout/footer/footer';
         </div>
       </section>
 
+      <!-- Signature Products Slider (below logo) -->
+      @if (slides().length > 0) {
+        <section class="signature-slider">
+          <div class="container">
+            <div class="section-header slider-header">
+              <div>
+                <p class="eyebrow">Hand-picked</p>
+                <h2>Signature Collection</h2>
+              </div>
+              <a routerLink="/shop" class="see-all">View all →</a>
+            </div>
+
+            <div class="slider-wrap">
+              <button type="button" class="nav prev" (click)="prev()" aria-label="Previous">‹</button>
+
+              <div class="slider-viewport">
+                <div class="slider-track" [style.transform]="'translateX(-' + (slideIndex() * 100) + '%)'">
+                  @for (p of slides(); track p.id) {
+                    <a class="slide" [routerLink]="['/products', p.slug]">
+                      <div class="slide-img-wrap">
+                        <img [src]="productImage(p)" [alt]="p.name" loading="lazy" />
+                        <span class="badge">Signature</span>
+                      </div>
+                      <div class="slide-info">
+                        <h3>{{ p.name }}</h3>
+                        <p class="price">
+                          @if (p.discountPrice) {
+                            <span class="now">Rs. {{ p.discountPrice | number }}</span>
+                            <span class="was">Rs. {{ p.price | number }}</span>
+                          } @else {
+                            <span class="now">Rs. {{ p.price | number }}</span>
+                          }
+                        </p>
+                        <span class="cta">View product →</span>
+                      </div>
+                    </a>
+                  }
+                </div>
+              </div>
+
+              <button type="button" class="nav next" (click)="next()" aria-label="Next">›</button>
+            </div>
+
+            <div class="dots">
+              @for (p of slides(); track p.id; let i = $index) {
+                <button type="button" class="dot" [class.active]="slideIndex() === i"
+                  (click)="goTo(i)" [attr.aria-label]="'Slide ' + (i + 1)"></button>
+              }
+            </div>
+          </div>
+        </section>
+      }
+
       <!-- Categories -->
       <section class="section categories">
         <div class="container">
@@ -50,7 +104,7 @@ import { FooterComponent } from '../../layout/footer/footer';
         </div>
       </section>
 
-      <!-- Featured -->
+      <!-- Featured grid -->
       <section class="section featured">
         <div class="container">
           <div class="section-header">
@@ -126,13 +180,12 @@ import { FooterComponent } from '../../layout/footer/footer';
       font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.12em;
       color: var(--color-primary-dark); font-weight: 600; margin-bottom: 0.75rem;
     }
-   .hero h1 {
-  font-size: clamp(2.2rem, 4.5vw, 3.4rem);
-  margin-bottom: 1rem;
-  line-height: 1.15;
-  color: #d979a3;
-}
-
+    .hero h1 {
+      font-size: clamp(2.2rem, 4.5vw, 3.4rem);
+      margin-bottom: 1rem;
+      line-height: 1.15;
+      color: #d979a3;
+    }
     .lead { font-size: 1.1rem; color: var(--color-text-muted); margin-bottom: 1.75rem; max-width: 420px; }
     .hero-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
     .hero-visual { position: relative; display: flex; justify-content: center; }
@@ -146,23 +199,154 @@ import { FooterComponent } from '../../layout/footer/footer';
       box-shadow: var(--shadow-hover);
     }
 
+    /* ===== Signature Slider ===== */
+    .signature-slider {
+      padding: 2.5rem 0 3rem;
+      background: #fff;
+      border-bottom: 1px solid var(--color-border, #f3e8ee);
+    }
+    .slider-header { margin-bottom: 1.5rem; }
+    .slider-header h2 { font-size: 1.75rem; color: #d979a3; margin: 0; }
+    .slider-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .slider-viewport {
+      flex: 1;
+      overflow: hidden;
+      border-radius: 20px;
+    }
+    .slider-track {
+      display: flex;
+      transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .slide {
+      flex: 0 0 100%;
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 0;
+      background: linear-gradient(135deg, #fdf2f8 0%, #fff7ed 50%, #f5f3ff 100%);
+      min-height: 280px;
+      text-decoration: none;
+      color: inherit;
+      overflow: hidden;
+    }
+    .slide-img-wrap {
+      position: relative;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 280px;
+    }
+    .slide-img-wrap img {
+      width: 100%;
+      height: 100%;
+      max-height: 340px;
+      object-fit: cover;
+      display: block;
+    }
+    .badge {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+      background: #d979a3;
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+    }
+    .slide-info {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 2rem 2.25rem;
+    }
+    .slide-info h3 {
+      font-size: 1.45rem;
+      margin: 0 0 0.75rem;
+      color: #1f2937;
+      line-height: 1.3;
+    }
+    .price { margin-bottom: 1.25rem; }
+    .price .now {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #d979a3;
+      margin-right: 0.5rem;
+    }
+    .price .was {
+      font-size: 0.95rem;
+      color: #9ca3af;
+      text-decoration: line-through;
+    }
+    .cta {
+      font-weight: 600;
+      color: var(--color-primary-dark, #be185d);
+      font-size: 0.95rem;
+    }
+    .slide:hover .cta { text-decoration: underline; }
+
+    .nav {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 1px solid var(--color-border, #e5e7eb);
+      background: #fff;
+      font-size: 1.5rem;
+      line-height: 1;
+      cursor: pointer;
+      color: #374151;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      transition: background 0.2s, color 0.2s;
+    }
+    .nav:hover {
+      background: #d979a3;
+      color: #fff;
+      border-color: #d979a3;
+    }
+    .dots {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-top: 1.15rem;
+    }
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      border: none;
+      background: #e5e7eb;
+      cursor: pointer;
+      padding: 0;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .dot.active {
+      background: #d979a3;
+      transform: scale(1.25);
+    }
+
     .section { padding: 4rem 0; }
     .section-header {
       display: flex; justify-content: space-between; align-items: baseline;
       margin-bottom: 1.75rem;
     }
-    .section-header h2 { 
-  font-size: 1.75rem;
-  color: #d979a3;
-}
-
+    .section-header h2 {
+      font-size: 1.75rem;
+      color: #d979a3;
+    }
     .see-all { font-weight: 500; font-size: 0.95rem; }
-   .text-center {
-  text-align: center;
-  margin-bottom: 2rem;
-  color: #d979a3;
-}
-
+    .text-center {
+      text-align: center;
+      margin-bottom: 2rem;
+      color: #d979a3;
+    }
 
     .category-grid {
       display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1rem;
@@ -211,15 +395,25 @@ import { FooterComponent } from '../../layout/footer/footer';
       .hero-actions { justify-content: center; }
       .hero-visual { order: -1; }
       .hero-visual img { max-width: 280px; }
+      .slide { grid-template-columns: 1fr; min-height: auto; }
+      .slide-img-wrap { min-height: 200px; max-height: 240px; }
+      .slide-img-wrap img { max-height: 240px; }
+      .slide-info { padding: 1.25rem 1.5rem 1.5rem; }
+      .nav { width: 36px; height: 36px; font-size: 1.25rem; }
     }
   `]
 })
-export class HomeComponent implements OnInit {
+export class HomeComponent implements OnInit, OnDestroy {
   private productService = inject(ProductService);
 
   featured = signal<Product[]>([]);
+  /** First 3–4 featured products for the signature slider */
+  slides = signal<Product[]>([]);
+  slideIndex = signal(0);
   categories = signal<Category[]>([]);
   loading = signal(true);
+
+  private autoTimer: ReturnType<typeof setInterval> | null = null;
 
   catIcons: Record<string, string> = {
     'phone-cases': '📱',
@@ -236,9 +430,60 @@ export class HomeComponent implements OnInit {
 
   ngOnInit(): void {
     this.productService.getFeatured().subscribe(p => {
-      this.featured.set(p);
+      const list = Array.isArray(p) ? p : [];
+      this.featured.set(list);
+      // Signature slider: up to 4 featured products that have an image
+      const withImg = list.filter(x => this.productImage(x));
+      this.slides.set((withImg.length ? withImg : list).slice(0, 4));
       this.loading.set(false);
+      this.startAuto();
     });
     this.productService.getCategories().subscribe(c => this.categories.set(c));
+  }
+
+  ngOnDestroy(): void {
+    this.stopAuto();
+  }
+
+  productImage(p: Product): string {
+    if (!p?.images?.length) return '';
+    const main = p.images.find(i => i.isMain) || p.images[0];
+    return main?.imageUrl || '';
+  }
+
+  next(): void {
+    const n = this.slides().length;
+    if (n < 2) return;
+    this.slideIndex.update(i => (i + 1) % n);
+    this.restartAuto();
+  }
+
+  prev(): void {
+    const n = this.slides().length;
+    if (n < 2) return;
+    this.slideIndex.update(i => (i - 1 + n) % n);
+    this.restartAuto();
+  }
+
+  goTo(i: number): void {
+    this.slideIndex.set(i);
+    this.restartAuto();
+  }
+
+  private startAuto(): void {
+    this.stopAuto();
+    if (this.slides().length < 2) return;
+    this.autoTimer = setInterval(() => this.next(), 4500);
+  }
+
+  private stopAuto(): void {
+    if (this.autoTimer) {
+      clearInterval(this.autoTimer);
+      this.autoTimer = null;
+    }
+  }
+
+  private restartAuto(): void {
+    this.startAuto();
   }
 }
