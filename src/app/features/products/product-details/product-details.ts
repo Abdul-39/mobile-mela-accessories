@@ -1,12 +1,24 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { DecimalPipe } from '@angular/common';
+import { DecimalPipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { ProductService } from '../../../core/services/product.service';
 import { CartService } from '../../../core/services/cart.service';
 import { Product } from '../../../core/models';
 import { ProductCardComponent } from '../../../shared/components/product-card/product-card';
 import { NavbarComponent } from '../../../layout/navbar/navbar';
+import { environment } from '../../../../environments/environment';
+
+interface ProductReview {
+  id: number;
+  productId: number;
+  customerId: number;
+  customerName: string;
+  rating: number;
+  comment?: string;
+  createdAt: string;
+}
 
 @Component({
   selector: 'app-product-details',
@@ -14,6 +26,7 @@ import { NavbarComponent } from '../../../layout/navbar/navbar';
   imports: [
     RouterLink,
     DecimalPipe,
+    DatePipe,
     FormsModule,
     ProductCardComponent,
     NavbarComponent
@@ -299,6 +312,33 @@ import { NavbarComponent } from '../../../layout/navbar/navbar';
             </div>
 
           </div>
+
+          <!-- ==================== CUSTOMER REVIEWS ==================== -->
+          <section class="reviews-section">
+            <h2>Customer Reviews</h2>
+            @if (reviewsLoading()) {
+              <p class="muted">Loading reviews…</p>
+            } @else if (reviews().length === 0) {
+              <p class="muted">No reviews yet. Be the first to review after your order is delivered.</p>
+            } @else {
+              <div class="reviews-list">
+                @for (r of reviews(); track r.id) {
+                  <article class="review-card">
+                    <div class="review-top">
+                      <strong class="reviewer">{{ r.customerName || 'Customer' }}</strong>
+                      <span class="review-stars">{{ starText(r.rating) }}</span>
+                      <time class="review-date">{{ r.createdAt | date:'dd MMM yyyy' }}</time>
+                    </div>
+                    @if (r.comment) {
+                      <p class="review-comment">{{ r.comment }}</p>
+                    } @else {
+                      <p class="review-comment muted">No written comment — rating only.</p>
+                    }
+                  </article>
+                }
+              </div>
+            }
+          </section>
 
           <!-- ==================== RELATED PRODUCTS ==================== -->
           @if (related().length) {
@@ -607,6 +647,52 @@ import { NavbarComponent } from '../../../layout/navbar/navbar';
       border-radius: var(--radius-sm);
     }
 
+    .reviews-section {
+      padding: 2rem 0 2.5rem;
+      border-top: 1px solid var(--color-border);
+    }
+    .reviews-section h2 {
+      font-size: 1.5rem;
+      margin-bottom: 1.25rem;
+      color: #d979a3;
+    }
+    .reviews-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .review-card {
+      background: #fff;
+      border: 1px solid var(--color-border, #f3e8ee);
+      border-radius: 14px;
+      padding: 1rem 1.25rem;
+      box-shadow: var(--shadow-card, 0 2px 8px rgba(0,0,0,0.04));
+    }
+    .review-top {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem 1rem;
+      margin-bottom: 0.5rem;
+    }
+    .reviewer { font-size: 0.95rem; }
+    .review-stars {
+      color: #d4a017;
+      letter-spacing: 1px;
+      font-size: 0.95rem;
+    }
+    .review-date {
+      margin-left: auto;
+      font-size: 0.8rem;
+      color: var(--color-text-muted, #9ca3af);
+    }
+    .review-comment {
+      margin: 0;
+      line-height: 1.55;
+      font-size: 0.95rem;
+      white-space: pre-wrap;
+    }
+
     .related {
       padding: 2rem 0 4rem;
       border-top: 1px solid var(--color-border);
@@ -638,14 +724,50 @@ export class ProductDetailsComponent implements OnInit {
   private router = inject(Router);
   private productService = inject(ProductService);
   private cart = inject(CartService);
+  private http = inject(HttpClient);
 
   product = signal<Product | null>(null);
   related = signal<Product[]>([]);
   loading = signal(true);
+  reviews = signal<ProductReview[]>([]);
+  reviewsLoading = signal(false);
 
   selectedImage = signal('');
   selectedColor = signal('');
   quantity = signal(1);
+
+  starText(rating: number): string {
+    const r = Math.max(0, Math.min(5, Math.round(Number(rating) || 0)));
+    return '★'.repeat(r) + '☆'.repeat(5 - r);
+  }
+
+  private loadReviews(productId: number): void {
+    this.reviewsLoading.set(true);
+    this.http
+      .get<any>(`${environment.apiUrl}/reviews`, {
+        params: { productId: String(productId) }
+      })
+      .subscribe({
+        next: res => {
+          const raw = Array.isArray(res) ? res : (res?.data ?? []);
+          const list: ProductReview[] = (raw as any[]).map(r => ({
+            id: r.id ?? r.Id,
+            productId: r.productId ?? r.ProductId,
+            customerId: r.customerId ?? r.CustomerId,
+            customerName: r.customerName ?? r.CustomerName ?? 'Customer',
+            rating: Number(r.rating ?? r.Rating ?? 0),
+            comment: r.comment ?? r.Comment ?? '',
+            createdAt: r.createdAt ?? r.CreatedAt ?? ''
+          }));
+          this.reviews.set(list);
+          this.reviewsLoading.set(false);
+        },
+        error: () => {
+          this.reviews.set([]);
+          this.reviewsLoading.set(false);
+        }
+      });
+  }
 
   ngOnInit(): void {
 
@@ -683,6 +805,9 @@ export class ProductDetailsComponent implements OnInit {
             );
 
             this.quantity.set(1);
+
+            // Load customer reviews (name, stars, comment)
+            this.loadReviews(p.id);
 
             // Load related products
             this.productService

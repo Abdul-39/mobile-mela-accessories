@@ -13,6 +13,7 @@ export interface Product {
   categoryId: number;
   categoryName?: string;
   isFeatured: boolean;
+  isSignature?: boolean;
   isActive: boolean;
   averageRating: number;
   reviewCount: number;

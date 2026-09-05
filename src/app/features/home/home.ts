@@ -429,13 +429,16 @@ export class HomeComponent implements OnInit, OnDestroy {
   };
 
   ngOnInit(): void {
+    // Featured section = Featured checkbox only
     this.productService.getFeatured().subscribe(p => {
-      const list = Array.isArray(p) ? p : [];
-      this.featured.set(list);
-      // Signature slider: up to 4 featured products that have an image
-      const withImg = list.filter(x => this.productImage(x));
-      this.slides.set((withImg.length ? withImg : list).slice(0, 4));
+      this.featured.set(Array.isArray(p) ? p : []);
       this.loading.set(false);
+    });
+    // Signature slider = Signature checkbox only (max 4)
+    this.productService.getSignature().subscribe(p => {
+      const list = Array.isArray(p) ? p : [];
+      const withImg = list.filter(x => !!this.productImage(x));
+      this.slides.set((withImg.length ? withImg : list).slice(0, 4));
       this.startAuto();
     });
     this.productService.getCategories().subscribe(c => this.categories.set(c));

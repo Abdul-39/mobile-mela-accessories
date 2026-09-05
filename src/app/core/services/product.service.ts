@@ -981,72 +981,65 @@ export class ProductService {
   // ============================================================
 
   getFeatured(): Observable<Product[]> {
+    return this.loadProductsByFlag('isFeatured');
+  }
 
+  /** Products marked Signature — for home page slider */
+  getSignature(): Observable<Product[]> {
+    return this.loadProductsByFlag('isSignature');
+  }
+
+  private loadProductsByFlag(flag: 'isFeatured' | 'isSignature'): Observable<Product[]> {
     if (this.useMock) {
-
       return of(
-        this.products.filter(
-          product =>
-            product.isFeatured &&
-            product.isActive
-        )
-      ).pipe(
-        delay(200)
-      );
+        this.products.filter(p => p.isActive && (flag === 'isFeatured' ? p.isFeatured : !!p.isSignature))
+      ).pipe(delay(200));
     }
 
-    const params =
-      new HttpParams()
-        .set(
-          'page',
-          '1'
-        )
-        .set(
-          'pageSize',
-          '100'
-        );
+    const params = new HttpParams()
+      .set('page', '1')
+      .set('pageSize', '20')
+      .set(flag, 'true');
 
-    return this.http
-      .get<any>(
-        `${environment.apiUrl}/products`,
-        {
-          params
-        }
-      )
-      .pipe(
+    return this.http.get<any>(`${environment.apiUrl}/products`, { params }).pipe(
+      map(response => {
+        const data = response?.data ?? response;
+        const products: any[] = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.items)
+            ? data.items
+            : [];
+        return products.map(p => this.normalizeFlags(p)).filter(p => p.isActive !== false);
+      }),
+      catchError(error => {
+        console.error(`Failed to load ${flag} products:`, error);
+        return of([]);
+      })
+    );
+  }
 
-        map(response => {
-
-          const data =
-            response?.data ??
-            response;
-
-          const products: Product[] =
-            Array.isArray(data)
-              ? data
-              : Array.isArray(
-                  data?.items
-                )
-                ? data.items
-                : [];
-
-          return products.filter(
-            product =>
-              product.isFeatured &&
-              product.isActive
-          );
-        }),
-
-        catchError(error => {
-
-          console.error(
-            'Failed to load featured products:',
-            error
-          );
-
-          return of([]);
-        })
-      );
+  private normalizeFlags(p: any): Product {
+    const images = (p.images ?? p.Images ?? []).map((img: any) => ({
+      id: img.id ?? img.Id,
+      productId: img.productId ?? img.ProductId,
+      imageUrl: img.imageUrl ?? img.ImageUrl ?? '',
+      isMain: !!(img.isMain ?? img.IsMain),
+      sortOrder: img.sortOrder ?? img.SortOrder ?? 0
+    }));
+    return {
+      ...p,
+      id: p.id ?? p.Id,
+      name: p.name ?? p.Name ?? '',
+      slug: p.slug ?? p.Slug ?? '',
+      price: Number(p.price ?? p.Price ?? 0),
+      discountPrice: p.discountPrice ?? p.DiscountPrice ?? null,
+      isFeatured: !!(p.isFeatured ?? p.IsFeatured),
+      isSignature: !!(p.isSignature ?? p.IsSignature),
+      isActive: p.isActive ?? p.IsActive ?? true,
+      images,
+      averageRating: p.averageRating ?? p.AverageRating ?? 0,
+      reviewCount: p.reviewCount ?? p.ReviewCount ?? 0
+    } as Product;
   }
 
   // ============================================================
